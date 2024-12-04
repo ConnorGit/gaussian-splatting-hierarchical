@@ -131,3 +131,27 @@ def safe_state(silent):
     np.random.seed(0)
     torch.manual_seed(0)
     torch.cuda.set_device(torch.device("cuda:0"))
+
+
+def compose_rotations(single_rotation, many_rotations):
+    """
+    Composes a single rotation with multiple rotations in quaternion format.
+    """
+    single_rotation = single_rotation / torch.norm(single_rotation)
+    many_rotations = many_rotations / torch.norm(many_rotations, dim=1, keepdim=True)
+
+    r1, x1, y1, z1 = single_rotation
+
+    r2, x2, y2, z2 = many_rotations[:, 0], many_rotations[:, 1], many_rotations[:, 2], many_rotations[:, 3]
+
+    # Perform quaternion multiplication
+    composed_r = r1 * r2 - x1 * x2 - y1 * y2 - z1 * z2
+    composed_x = r1 * x2 + x1 * r2 + y1 * z2 - z1 * y2
+    composed_y = r1 * y2 - x1 * z2 + y1 * r2 + z1 * x2
+    composed_z = r1 * z2 + x1 * y2 - y1 * x2 + z1 * r2
+
+    composed_rotations = torch.stack((composed_r, composed_x, composed_y, composed_z), dim=1)
+
+    composed_rotations = composed_rotations / torch.norm(composed_rotations, dim=1, keepdim=True)
+
+    return composed_rotations
